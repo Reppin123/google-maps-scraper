@@ -225,13 +225,13 @@ def _run_batch(queries, out_dir, max_results, pace, targets=None):
         except requests.RequestException as e:
             print(f"  ERROR: {e} — skipping")
             continue
-        slug = re.sub(r"[^a-zA-Z0-9]+", "_", query).strip("_").lower()
-        json.dump(results, open(out_dir / f"{slug}.json", "w"), indent=2)
         for r in results:
             r["_query"] = query
             if targets:
                 r["_profile"] = targets[i].get("profile")
                 r["_tier"] = targets[i].get("tier")
+        slug = re.sub(r"[^a-zA-Z0-9]+", "_", query).strip("_").lower()
+        json.dump(results, open(out_dir / f"{slug}.json", "w"), indent=2)
         merged.extend(results)
         if i < len(queries) - 1:
             time.sleep(random.uniform(pace, pace + 2))
