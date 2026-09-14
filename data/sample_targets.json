@@ -1,0 +1,9 @@
+[
+  {"profile": "Painters & decorators", "suburb": "Bondi", "state": "NSW", "tier": 1},
+  {"profile": "Electricians", "suburb": "Fitzroy", "state": "VIC", "tier": 1},
+  {"profile": "Plumbers", "suburb": "Bondi", "state": "NSW", "tier": 1},
+  {"profile": "Wedding photographers", "suburb": "Fitzroy", "state": "VIC", "tier": 2},
+  {"profile": "Solo law firms conveyancing", "suburb": "Bondi Junction", "state": "NSW", "tier": 3},
+  {"profile": "Independent dental clinics", "suburb": "Fitzroy", "state": "VIC", "tier": 4},
+  {"profile": "Independent restaurants and cafes", "suburb": "Fitzroy", "state": "VIC", "tier": 5}
+]
