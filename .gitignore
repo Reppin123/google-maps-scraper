@@ -4,3 +4,5 @@ __pycache__/
 .venv/
 data/*.json
 !data/.gitkeep
+*.db
+*_export.json
