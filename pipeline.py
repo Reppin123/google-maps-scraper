@@ -87,6 +87,22 @@ CREATE INDEX IF NOT EXISTS idx_biz_signal ON businesses(signal_score DESC);
 
 STATE_ABBRS = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"]
 
+# Google's tbm=map endpoint occasionally ignores the request's geo-bias and
+# serves an unlocalized fallback batch (empirically: a cluster of genuine
+# Chandigarh/India businesses bleeding into a Sydney grid run, 2026-09-15).
+# Defensive belt-and-braces guard here too, even though au_grid.py already
+# filters at collection time — never let an offshore row reach the DB.
+AU_BBOX = {"lat_min": -44.0, "lat_max": -10.0, "lng_min": 112.0, "lng_max": 154.0}
+
+
+def in_au_bbox(lat, lng) -> bool:
+    if lat is None or lng is None:
+        return False
+    try:
+        return AU_BBOX["lat_min"] <= float(lat) <= AU_BBOX["lat_max"] and AU_BBOX["lng_min"] <= float(lng) <= AU_BBOX["lng_max"]
+    except (TypeError, ValueError):
+        return False
+
 
 def parse_address(address: str, source_query: str = ""):
     """Best-effort suburb/state split from the full formatted address."""
@@ -123,8 +139,11 @@ def ingest_file(conn, path: Path):
     if isinstance(rows, dict):
         rows = [rows]
     now = __import__("datetime").datetime.now().isoformat(timespec="seconds")
-    n_new = n_updated = 0
+    n_new = n_updated = n_offshore = 0
     for r in rows:
+        if not in_au_bbox(r.get("lat"), r.get("lng")):
+            n_offshore += 1
+            continue
         place_id = r.get("place_id") or f"noid:{r.get('name')}|{r.get('address')}"
         source_query = r.get("_query") or path.stem.replace("_", " ")
         suburb, state = parse_address(r.get("address"), source_query)
@@ -171,7 +190,7 @@ def ingest_file(conn, path: Path):
             (place_id, now, r.get("rating"), r.get("review_count"), source_query),
         )
     conn.commit()
-    return n_new, n_updated
+    return n_new, n_updated, n_offshore
 
 
 def cmd_ingest(args):
@@ -180,13 +199,16 @@ def cmd_ingest(args):
     target = Path(args.path)
     files = sorted(target.glob("*.json")) if target.is_dir() else [target]
     files = [f for f in files if f.name != "_merged.json" or len(files) == 1]
-    total_new = total_upd = 0
+    total_new = total_upd = total_off = 0
     for f in files:
-        n_new, n_upd = ingest_file(conn, f)
-        print(f"  {f.name}: {n_new} new, {n_upd} updated")
+        n_new, n_upd, n_off = ingest_file(conn, f)
+        off_note = f", {n_off} offshore dropped" if n_off else ""
+        print(f"  {f.name}: {n_new} new, {n_upd} updated{off_note}")
         total_new += n_new
         total_upd += n_upd
-    print(f"\nDone: {total_new} new businesses, {total_upd} updated, across {len(files)} file(s) -> {args.db}")
+        total_off += n_off
+    off_note = f", {total_off} offshore rows dropped" if total_off else ""
+    print(f"\nDone: {total_new} new businesses, {total_upd} updated{off_note}, across {len(files)} file(s) -> {args.db}")
 
 
 def cmd_summary(args):
