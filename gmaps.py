@@ -167,9 +167,10 @@ def parse_page(raw: str) -> list:
     return out
 
 
-def search(query: str, max_results: int = 120, pace: tuple = (1.5, 3.0), verbose: bool = True) -> list:
-    lat, lng = AU_CENTER
-    session = requests.Session()
+def search(query: str, max_results: int = 120, pace: tuple = (1.5, 3.0), verbose: bool = True,
+           center: tuple = None, session: requests.Session = None) -> list:
+    lat, lng = center if center else AU_CENTER
+    session = session or requests.Session()
     seen_ids = set()
     all_results = []
     offset = 0

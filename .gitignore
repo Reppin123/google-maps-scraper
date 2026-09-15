@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 data/*.json
+data/grid_*/
 !data/.gitkeep
 *.db
 *_export.json
+*.log
